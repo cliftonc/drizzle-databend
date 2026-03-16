@@ -44,6 +44,10 @@
     "drizzle",
     "databend"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cliftonc/drizzle-databend"
+  },
   "license": "MIT",
   "files": [
     "src/**/*.ts",
