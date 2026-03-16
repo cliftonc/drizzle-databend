@@ -23,23 +23,32 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    services:
-      databend:
-        image: datafuselabs/databend
-        env:
-          MINIO_ENABLED: "true"
-          QUERY_DEFAULT_USER: databend
-          QUERY_DEFAULT_PASSWORD: databend
-        ports:
-          - 8000:8000
-        options: >-
-          --health-cmd "curl -fs http://localhost:8000/v1/health || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
-
     steps:
       - uses: actions/checkout@v4
+
+      - name: Start Databend
+        run: |
+          docker run -d \
+            --name databend \
+            --network host \
+            -e MINIO_ENABLED=true \
+            -e QUERY_DEFAULT_USER=databend \
+            -e QUERY_DEFAULT_PASSWORD=databend \
+            datafuselabs/databend
+
+      - name: Wait for Databend to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/v1/health > /dev/null 2>&1; then
+              echo "Databend is ready"
+              exit 0
+            fi
+            echo "Waiting for Databend... ($i/30)"
+            sleep 2
+          done
+          echo "Databend failed to start"
+          docker logs databend
+          exit 1
 
       - uses: oven-sh/setup-bun@v2
         with:
