@@ -12,7 +12,6 @@ jobs:
   publish:
     needs: ci
     runs-on: ubuntu-latest
-    environment: release
     permissions:
       contents: read
       id-token: write
