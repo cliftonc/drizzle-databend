@@ -49,5 +49,9 @@
     "src/**/*.ts",
     "dist/*.mjs",
     "dist/**/*.d.ts"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  }
 }

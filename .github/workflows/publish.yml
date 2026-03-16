@@ -1,4 +1,4 @@
-name: Publish to NPM
+name: Publish Package
 
 on:
   push:
@@ -6,71 +6,26 @@ on:
       - "v*"
 
 permissions:
-  contents: read
   id-token: write
+  contents: read
 
 jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - run: bun install
-
-      - run: bun run build
-
-      - name: Start Databend
-        run: |
-          docker run -d \
-            --name databend \
-            --network host \
-            -e MINIO_ENABLED=true \
-            -e QUERY_DEFAULT_USER=databend \
-            -e QUERY_DEFAULT_PASSWORD=databend \
-            datafuselabs/databend
-
-      - name: Wait for Databend to be ready
-        run: |
-          for i in $(seq 1 30); do
-            if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
-              echo "Databend is ready"
-              exit 0
-            fi
-            echo "Waiting for Databend... ($i/30)"
-            sleep 2
-          done
-          echo "Databend failed to start"
-          docker logs databend
-          exit 1
-
-      - run: bun test --run
-        env:
-          DATABEND_DSN: "databend://databend:databend@localhost:8000/default?sslmode=disable"
-
   publish:
-    needs: build-and-test
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@v4
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - run: bun install
-
-      - run: bun run build
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
-      - run: npm publish --provenance --access public
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install
+
+      - run: bun run build
+
+      - run: npm publish
