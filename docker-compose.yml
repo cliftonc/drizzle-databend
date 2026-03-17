@@ -1,0 +1,26 @@
+services:
+  databend:
+    image: datafuselabs/databend
+    container_name: drizzle-databend-test
+    ports:
+      - "8124:8000"
+      - "3407:3307"
+    environment:
+      QUERY_DEFAULT_USER: databend
+      QUERY_DEFAULT_PASSWORD: databend
+      QUERY_STORAGE_TYPE: fs
+    volumes:
+      - databend-meta:/var/lib/databend/meta
+      - databend-query:/var/lib/databend/query
+      - databend-logs:/var/log/databend
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8000'"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  databend-meta:
+  databend-query:
+  databend-logs:

@@ -3,7 +3,6 @@ import { Client } from 'databend-driver';
 import { entityKind } from 'drizzle-orm/entity';
 import type { Logger } from 'drizzle-orm/logger';
 import { DefaultLogger } from 'drizzle-orm/logger';
-import { PgDatabase } from 'drizzle-orm/pg-core/db';
 import {
   createTableRelationsHelpers,
   type ExtractTablesWithRelations,
@@ -13,14 +12,14 @@ import {
 } from 'drizzle-orm/relations';
 import type { DrizzleConfig } from 'drizzle-orm/utils';
 import { closeClientConnection, isPool } from './client.ts';
-import { DatabendDialect } from './dialect.ts';
+import { DatabendDatabase as DatabendDatabaseBase } from './databend-core/db.ts';
+import { DatabendDialect } from './databend-core/dialect.ts';
 import {
   createDatabendConnectionPool,
   type DatabendPoolConfig,
 } from './pool.ts';
 import type {
   DatabendClientLike,
-  DatabendQueryResultHKT,
   DatabendTransaction,
 } from './session.ts';
 import { DatabendSession } from './session.ts';
@@ -230,8 +229,8 @@ export class DatabendDatabase<
   TFullSchema extends Record<string, unknown> = Record<string, never>,
   TSchema extends TablesRelationalConfig =
     ExtractTablesWithRelations<TFullSchema>,
-> extends PgDatabase<DatabendQueryResultHKT, TFullSchema, TSchema> {
-  static readonly [entityKind]: string = 'DatabendDatabase';
+> extends DatabendDatabaseBase {
+  static override readonly [entityKind]: string = 'DatabendDatabase';
 
   /** The underlying connection or pool */
   readonly $client: DatabendClientLike;
@@ -240,8 +239,8 @@ export class DatabendDatabase<
   readonly $databendClient?: Client;
 
   constructor(
-    readonly dialect: DatabendDialect,
-    readonly session: DatabendSession<TFullSchema, TSchema>,
+    override readonly dialect: DatabendDialect,
+    override readonly session: DatabendSession<TFullSchema, TSchema>,
     schema: RelationalSchemaConfig<TSchema> | undefined,
     client: DatabendClientLike,
     databendClient?: Client

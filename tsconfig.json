@@ -21,5 +21,6 @@
     "strictBindCallApply": true,
     "strictPropertyInitialization": true,
     "noImplicitThis": true
-  }
+  },
+  "exclude": ["scripts"]
 }

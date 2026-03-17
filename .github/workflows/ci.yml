@@ -53,28 +53,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Start Databend
-        run: |
-          docker run -d \
-            --name databend \
-            --network host \
-            -e MINIO_ENABLED=true \
-            -e QUERY_DEFAULT_USER=databend \
-            -e QUERY_DEFAULT_PASSWORD=databend \
-            datafuselabs/databend
-
-      - name: Wait for Databend to be ready
-        run: |
-          for i in $(seq 1 30); do
-            if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
-              echo "Databend is ready"
-              exit 0
-            fi
-            echo "Waiting for Databend... ($i/30)"
-            sleep 2
-          done
-          echo "Databend failed to start"
-          docker logs databend
-          exit 1
+        run: docker compose up -d --wait
 
       - uses: actions/setup-node@v4
         with:
@@ -83,5 +62,7 @@ jobs:
       - run: npm install
 
       - run: npm test
-        env:
-          DATABEND_DSN: "databend://databend:databend@localhost:8000/default?sslmode=disable"
+
+      - name: Stop Databend
+        if: always()
+        run: docker compose down

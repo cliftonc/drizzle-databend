@@ -1,12 +1,11 @@
-
-import { customType } from 'drizzle-orm/pg-core';
+import { customType } from './databend-core/columns/custom.ts';
 
 /**
  * Databend VARIANT column type.
  * Stores semi-structured JSON-like data. Maps to `unknown` in TypeScript.
  */
 export const databendVariant = <TData = unknown>(name: string) =>
-  customType<{ data: TData; driverData: string | TData }>({
+  customType<{ data: TData; driverData: string | TData; notNull: boolean; default: boolean }>({
     dataType() {
       return 'VARIANT';
     },
@@ -36,7 +35,7 @@ export const databendArray = <TData = unknown>(
   name: string,
   elementType: string
 ) =>
-  customType<{ data: TData[]; driverData: TData[] | string }>({
+  customType<{ data: TData[]; driverData: TData[] | string; notNull: boolean; default: boolean }>({
     dataType() {
       return `ARRAY(${elementType})`;
     },
@@ -63,7 +62,7 @@ export const databendTuple = <TData extends unknown[]>(
   name: string,
   types: string[]
 ) =>
-  customType<{ data: TData; driverData: TData | string }>({
+  customType<{ data: TData; driverData: TData | string; notNull: boolean; default: boolean }>({
     dataType() {
       return `TUPLE(${types.join(', ')})`;
     },
@@ -91,7 +90,7 @@ export const databendMap = <TData extends Record<string, any>>(
   keyType: string,
   valueType: string
 ) =>
-  customType<{ data: TData; driverData: TData | string }>({
+  customType<{ data: TData; driverData: TData | string; notNull: boolean; default: boolean }>({
     dataType() {
       return `MAP(${keyType}, ${valueType})`;
     },
@@ -117,6 +116,8 @@ export const databendTimestamp = (name: string) =>
   customType<{
     data: Date | string;
     driverData: string | Date;
+    notNull: boolean;
+    default: boolean;
   }>({
     dataType() {
       return 'TIMESTAMP';
@@ -145,7 +146,7 @@ export const databendTimestamp = (name: string) =>
  * Databend DATE column type.
  */
 export const databendDate = (name: string) =>
-  customType<{ data: string | Date; driverData: string | Date }>({
+  customType<{ data: string | Date; driverData: string | Date; notNull: boolean; default: boolean }>({
     dataType() {
       return 'DATE';
     },

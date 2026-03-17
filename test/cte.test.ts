@@ -20,11 +20,11 @@ describe('CTE patterns', () => {
     const result = await db.with(activeProducts)
       .select()
       .from(activeProducts)
-      .orderBy(sql`${activeProducts.price} DESC`);
+      .orderBy(sql`${(activeProducts as any).price} DESC`);
 
     expect(result).toHaveLength(4);
     for (const row of result) {
-      expect(row.price).toBeDefined();
+      expect((row as any).price).toBeDefined();
     }
   });
 
@@ -42,7 +42,7 @@ describe('CTE patterns', () => {
     const result = await db.with(categoryStats)
       .select()
       .from(categoryStats)
-      .orderBy(categoryStats.category);
+      .orderBy((categoryStats as any).category);
 
     expect(result).toHaveLength(3);
     for (const row of result) {
@@ -65,11 +65,11 @@ describe('CTE patterns', () => {
       .select({
         name: products.name,
         price: products.price,
-        categoryCnt: categoryStats.cnt,
-        categoryAvg: categoryStats.avgPrice,
+        categoryCnt: (categoryStats as any).cnt,
+        categoryAvg: (categoryStats as any).avgPrice,
       })
       .from(products)
-      .leftJoin(categoryStats, eq(products.category, categoryStats.category))
+      .leftJoin(categoryStats, eq(products.category, (categoryStats as any).category))
       .orderBy(products.id);
 
     expect(result).toHaveLength(5);
@@ -91,25 +91,24 @@ describe('CTE patterns', () => {
 
     const summary = db.$with('summary').as(
       db.select({
-        category: base.category,
-        totalPrice: sum(base.price).as('total_price'),
+        category: (base as any).category,
+        totalPrice: sum((base as any).price).as('total_price'),
         cnt: count().as('cnt'),
       })
         .from(base)
-        .groupBy(base.category)
+        .groupBy((base as any).category)
     );
 
     const result = await db.with(base, summary)
       .select()
       .from(summary)
-      .orderBy(sql`${summary.totalPrice} DESC`);
+      .orderBy(sql`${(summary as any).totalPrice} DESC`);
 
     expect(result).toHaveLength(3);
   });
 
   it('should handle CTE with UNION ALL via raw SQL', async () => {
     const combined = db.$with('combined').as(
-      // @ts-expect-error - Databend supports raw SQL in CTEs but drizzle types don't reflect this
       sql`SELECT name, 'product' AS source FROM drizzle_test_products
           UNION ALL
           SELECT name, 'event' AS source FROM drizzle_test_events`

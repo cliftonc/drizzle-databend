@@ -1,5 +1,6 @@
 import { Column, getTableName, is, SQL, sql } from 'drizzle-orm';
-import type { SelectedFields } from 'drizzle-orm/pg-core';
+
+type SelectedFields = Record<string, any>;
 
 function mapEntries(
   obj: Record<string, unknown>,

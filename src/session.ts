@@ -3,14 +3,6 @@ import { entityKind } from 'drizzle-orm/entity';
 import { TransactionRollbackError } from 'drizzle-orm/errors';
 import type { Logger } from 'drizzle-orm/logger';
 import { NoopLogger } from 'drizzle-orm/logger';
-import { PgTransaction } from 'drizzle-orm/pg-core';
-import type { SelectedFieldsOrdered } from 'drizzle-orm/pg-core/query-builders/select.types';
-import type {
-  PgQueryResultHKT,
-  PgTransactionConfig,
-  PreparedQueryConfig,
-} from 'drizzle-orm/pg-core/session';
-import { PgPreparedQuery, PgSession } from 'drizzle-orm/pg-core/session';
 import type {
   RelationalSchemaConfig,
   TablesRelationalConfig,
@@ -27,25 +19,33 @@ import {
   executeOnClient,
   isPool,
 } from './client.ts';
-import type { DatabendDialect } from './dialect.ts';
+import type { DatabendDialect } from './databend-core/dialect.ts';
+import {
+  DatabendPreparedQuery as DatabendPreparedQueryBase,
+  DatabendSession as DatabendSessionBase,
+  DatabendTransaction as DatabendTransactionBase,
+} from './databend-core/session.ts';
 import { mapResultRow } from './sql/result-mapper.ts';
 
 export type { DatabendClientLike, RowData } from './client.ts';
 
-export class DatabendPreparedQuery<
-  T extends PreparedQueryConfig,
-> extends PgPreparedQuery<T> {
-  static readonly [entityKind]: string = 'DatabendPreparedQuery';
+export interface DatabendQueryResultHKT {
+  readonly row: RowData;
+  type: GenericTableData<Assume<this['row'], RowData>>;
+}
+
+export class DatabendPreparedQuery extends DatabendPreparedQueryBase {
+  static override readonly [entityKind]: string = 'DatabendPreparedQuery';
 
   constructor(
     private client: DatabendClientLike,
     private queryString: string,
     private params: unknown[],
     private logger: Logger,
-    private fields: SelectedFieldsOrdered | undefined,
+    private fields: any[] | undefined,
     private _isResponseInArrayMode: boolean,
     private customResultMapper:
-      | ((rows: unknown[][]) => T['execute'])
+      | ((rows: unknown[][]) => any)
       | undefined,
     private typings?: QueryTypingsValue[]
   ) {
@@ -54,7 +54,7 @@ export class DatabendPreparedQuery<
 
   async execute(
     placeholderValues: Record<string, unknown> | undefined = {}
-  ): Promise<T['execute']> {
+  ): Promise<any> {
     const params = fillPlaceholders(this.params, placeholderValues);
     this.logger.logQuery(this.queryString, params);
 
@@ -70,24 +70,24 @@ export class DatabendPreparedQuery<
       );
 
       if (rows.length === 0) {
-        return [] as T['execute'];
+        return [];
       }
 
       return customResultMapper
         ? customResultMapper(rows)
         : rows.map((row) =>
-            mapResultRow<T['execute']>(fields, row, joinsNotNullableMap)
+            mapResultRow(fields, row, joinsNotNullableMap)
           );
     }
 
     const rows = await executeOnClient(this.client, this.queryString, params, typings);
 
-    return rows as T['execute'];
+    return rows;
   }
 
   all(
     placeholderValues: Record<string, unknown> | undefined = {}
-  ): Promise<T['all']> {
+  ): Promise<any> {
     return this.execute(placeholderValues);
   }
 
@@ -103,10 +103,10 @@ export interface DatabendSessionOptions {
 export class DatabendSession<
   TFullSchema extends Record<string, unknown> = Record<string, never>,
   TSchema extends TablesRelationalConfig = Record<string, never>,
-> extends PgSession<DatabendQueryResultHKT, TFullSchema, TSchema> {
-  static readonly [entityKind]: string = 'DatabendSession';
+> extends DatabendSessionBase {
+  static override readonly [entityKind]: string = 'DatabendSession';
 
-  protected override dialect: DatabendDialect;
+  override dialect: DatabendDialect;
   private logger: Logger;
   private rollbackOnly = false;
 
@@ -121,13 +121,13 @@ export class DatabendSession<
     this.logger = options.logger ?? new NoopLogger();
   }
 
-  prepareQuery<T extends PreparedQueryConfig = PreparedQueryConfig>(
+  override prepareQuery(
     query: Query,
-    fields: SelectedFieldsOrdered | undefined,
+    fields: any[] | undefined,
     name: string | undefined,
     isResponseInArrayMode: boolean,
-    customResultMapper?: (rows: unknown[][]) => T['execute']
-  ): PgPreparedQuery<T> {
+    customResultMapper?: (rows: unknown[][]) => any
+  ): DatabendPreparedQuery {
     void name;
     return new DatabendPreparedQuery(
       this.client,
@@ -143,7 +143,7 @@ export class DatabendSession<
 
   override async transaction<T>(
     transaction: (tx: DatabendTransaction<TFullSchema, TSchema>) => Promise<T>,
-    config?: PgTransactionConfig
+    config?: DatabendTransactionConfig
   ): Promise<T> {
     let pinnedConnection: Connection | undefined;
     let pool: DatabendConnectionPool | undefined;
@@ -203,19 +203,10 @@ export class DatabendSession<
   }
 }
 
-type DatabendTransactionInternals<
-  TFullSchema extends Record<string, unknown> = Record<string, never>,
-  TSchema extends TablesRelationalConfig = Record<string, never>,
-> = {
-  dialect: DatabendDialect;
-  session: DatabendSession<TFullSchema, TSchema>;
-};
-
-type DatabendTransactionWithInternals<
-  TFullSchema extends Record<string, unknown> = Record<string, never>,
-  TSchema extends TablesRelationalConfig = Record<string, never>,
-> = DatabendTransactionInternals<TFullSchema, TSchema> &
-  DatabendTransaction<TFullSchema, TSchema>;
+export interface DatabendTransactionConfig {
+  isolationLevel?: string;
+  accessMode?: string;
+}
 
 const VALID_TRANSACTION_ISOLATION_LEVELS = new Set<string>([
   'read uncommitted',
@@ -232,14 +223,16 @@ const VALID_TRANSACTION_ACCESS_MODES = new Set<string>([
 export class DatabendTransaction<
   TFullSchema extends Record<string, unknown>,
   TSchema extends TablesRelationalConfig,
-> extends PgTransaction<DatabendQueryResultHKT, TFullSchema, TSchema> {
-  static readonly [entityKind]: string = 'DatabendTransaction';
+> extends DatabendTransactionBase {
+  static override readonly [entityKind]: string = 'DatabendTransaction';
 
-  rollback(): never {
+  declare schema: any;
+
+  override rollback(): never {
     throw new TransactionRollbackError();
   }
 
-  getTransactionConfigSQL(config: PgTransactionConfig): SQL {
+  getTransactionConfigSQL(config: DatabendTransactionConfig): SQL {
     if (
       config.isolationLevel &&
       !VALID_TRANSACTION_ISOLATION_LEVELS.has(config.isolationLevel)
@@ -272,9 +265,8 @@ export class DatabendTransaction<
     return sql.raw(chunks.join(' '));
   }
 
-  setTransaction(config: PgTransactionConfig): Promise<void> {
-    type Tx = DatabendTransactionWithInternals<TFullSchema, TSchema>;
-    return (this as unknown as Tx).session.execute(
+  setTransaction(config: DatabendTransactionConfig): Promise<void> {
+    return (this as any).session.execute(
       sql`SET TRANSACTION ${this.getTransactionConfigSQL(config)}`
     );
   }
@@ -283,8 +275,7 @@ export class DatabendTransaction<
     transaction: (tx: DatabendTransaction<TFullSchema, TSchema>) => Promise<T>
   ): Promise<T> {
     // Databend does not support savepoints. Use rollback-only fallback.
-    type Tx = DatabendTransactionWithInternals<TFullSchema, TSchema>;
-    const internals = this as unknown as Tx;
+    const internals = this as any;
 
     const nestedTx = new DatabendTransaction<TFullSchema, TSchema>(
       internals.dialect,
@@ -294,9 +285,7 @@ export class DatabendTransaction<
     );
 
     return transaction(nestedTx).catch((error) => {
-      (
-        internals.session as DatabendSession<TFullSchema, TSchema>
-      ).markRollbackOnly();
+      (internals.session as DatabendSession<TFullSchema, TSchema>).markRollbackOnly();
       throw error;
     });
   }
@@ -305,7 +294,3 @@ export class DatabendTransaction<
 export type GenericRowData<T extends RowData = RowData> = T;
 
 export type GenericTableData<T = RowData> = T[];
-
-export interface DatabendQueryResultHKT extends PgQueryResultHKT {
-  type: GenericTableData<Assume<this['row'], RowData>>;
-}

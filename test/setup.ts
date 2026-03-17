@@ -1,13 +1,23 @@
 import { sql } from 'drizzle-orm';
-import { boolean, doublePrecision, integer, pgTable, real, text, varchar } from 'drizzle-orm/pg-core';
-import { databendTimestamp, databendVariant } from '../src/columns.ts';
-import { type DatabendDatabase, drizzle } from '../src/index.ts';
+import {
+  boolean,
+  type DatabendDatabase,
+  databendTable,
+  databendTimestamp,
+  databendVariant,
+  doublePrecision,
+  drizzle,
+  integer,
+  real,
+  text,
+  varchar,
+} from '../src/index.ts';
 
-export const DSN = process.env.DATABEND_DSN ?? 'databend://databend:databend@localhost:8000/default?sslmode=disable';
+export const DSN = process.env.DATABEND_DSN ?? 'databend://databend:databend@localhost:8124/default?sslmode=disable';
 
 // -- Table definitions --
 
-export const users = pgTable('drizzle_test_users', {
+export const users = databendTable('drizzle_test_users', {
   id: integer('id').notNull(),
   name: varchar('name', { length: 256 }).notNull(),
   email: text('email'),
@@ -15,7 +25,7 @@ export const users = pgTable('drizzle_test_users', {
   score: real('score'),
 });
 
-export const products = pgTable('drizzle_test_products', {
+export const products = databendTable('drizzle_test_products', {
   id: integer('id').notNull(),
   name: varchar('name', { length: 256 }).notNull(),
   quantity: integer('quantity').notNull(),
@@ -25,7 +35,7 @@ export const products = pgTable('drizzle_test_products', {
   createdAt: databendTimestamp('created_at'),
 });
 
-export const events = pgTable('drizzle_test_events', {
+export const events = databendTable('drizzle_test_events', {
   id: integer('id').notNull(),
   name: varchar('name', { length: 256 }).notNull(),
   startedAt: databendTimestamp('started_at'),
@@ -34,7 +44,7 @@ export const events = pgTable('drizzle_test_events', {
   value: real('value'),
 });
 
-export const items = pgTable('drizzle_test_items', {
+export const items = databendTable('drizzle_test_items', {
   id: integer('id').notNull(),
   name: varchar('name', { length: 256 }).notNull(),
   metadata: databendVariant('metadata'),

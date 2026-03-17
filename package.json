@@ -10,9 +10,9 @@
     "build": "esbuild src/index.ts --bundle --format=esm --platform=node --packages=external --outfile=dist/index.mjs && npm run build:declarations",
     "build:declarations": "tsc --emitDeclarationOnly --project tsconfig.types.json",
     "test": "vitest run",
-    "db:start": "docker start databend 2>/dev/null || docker run -d --name databend -p 8000:8000 datafuselabs/databend",
-    "db:stop": "docker stop databend",
-    "db:restart": "docker restart databend",
+    "db:up": "docker-compose up -d --wait",
+    "db:down": "docker-compose down",
+    "db:destroy": "docker-compose down -v",
     "lint": "biome check src/ test/",
     "typecheck": "tsc --noEmit"
   },
