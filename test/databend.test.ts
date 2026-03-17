@@ -1,7 +1,7 @@
 import { eq, sql } from 'drizzle-orm';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { DatabendDatabase } from '../src/index.ts';
-import { getDb, items, users } from './setup.ts';
+import { events, getDb, items, users } from './setup.ts';
 
 describe('drizzle-databend', () => {
   let db: DatabendDatabase;
@@ -31,5 +31,24 @@ describe('drizzle-databend', () => {
     const result = await db.select().from(items).where(eq(items.name, 'Test Item'));
     expect(result).toHaveLength(1);
     expect(result[0]!.name).toBe('Test Item');
+  });
+
+  it('should perform a cross join', async () => {
+    const result = await db
+      .select({
+        userName: users.name,
+        eventName: events.name,
+      })
+      .from(users)
+      .crossJoin(events)
+      .where(eq(users.name, 'Alice'))
+      .orderBy(events.name);
+
+    // Alice crossed with 4 events
+    expect(result).toHaveLength(4);
+    for (const row of result) {
+      expect(row.userName).toBe('Alice');
+      expect(row.eventName).toBeDefined();
+    }
   });
 });

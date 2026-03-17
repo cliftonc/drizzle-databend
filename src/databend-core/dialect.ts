@@ -206,6 +206,7 @@ export class DatabendDialect {
       }
       const table = joinMeta.table;
       const lateralSql = joinMeta.lateral ? sql` lateral` : undefined;
+      const onClause = joinMeta.on ? sql` on ${joinMeta.on}` : undefined;
       if (is(table, DatabendTable)) {
         const t = table as any;
         const tableName = t[(DatabendTable as any).Symbol.Name];
@@ -213,7 +214,7 @@ export class DatabendDialect {
         const origTableName = t[(DatabendTable as any).Symbol.OriginalName];
         const alias = tableName === origTableName ? undefined : joinMeta.alias;
         joinsArray.push(
-          sql`${sql.raw(joinMeta.joinType)} join${lateralSql} ${tableSchema ? sql`${sql.identifier(tableSchema)}.` : undefined}${sql.identifier(origTableName)}${alias && sql` ${sql.identifier(alias)}`} on ${joinMeta.on}`
+          sql`${sql.raw(joinMeta.joinType)} join${lateralSql} ${tableSchema ? sql`${sql.identifier(tableSchema)}.` : undefined}${sql.identifier(origTableName)}${alias && sql` ${sql.identifier(alias)}`}${onClause}`
         );
       } else if (is(table, View)) {
         const viewName = (table as any)[ViewBaseConfig].name;
@@ -221,11 +222,11 @@ export class DatabendDialect {
         const origViewName = (table as any)[ViewBaseConfig].originalName;
         const alias = viewName === origViewName ? undefined : joinMeta.alias;
         joinsArray.push(
-          sql`${sql.raw(joinMeta.joinType)} join${lateralSql} ${viewSchema ? sql`${sql.identifier(viewSchema)}.` : undefined}${sql.identifier(origViewName)}${alias && sql` ${sql.identifier(alias)}`} on ${joinMeta.on}`
+          sql`${sql.raw(joinMeta.joinType)} join${lateralSql} ${viewSchema ? sql`${sql.identifier(viewSchema)}.` : undefined}${sql.identifier(origViewName)}${alias && sql` ${sql.identifier(alias)}`}${onClause}`
         );
       } else {
         joinsArray.push(
-          sql`${sql.raw(joinMeta.joinType)} join${lateralSql} ${table} on ${joinMeta.on}`
+          sql`${sql.raw(joinMeta.joinType)} join${lateralSql} ${table}${onClause}`
         );
       }
       if (index < joins.length - 1) {

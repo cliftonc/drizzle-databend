@@ -170,6 +170,41 @@ class DatabendSelectQueryBuilderBase extends TypedQueryBuilder<any, any> {
   innerJoin = this.createJoin('inner');
   fullJoin = this.createJoin('full');
 
+  crossJoin = (table: any) => {
+    const baseTableName = this.tableName;
+    const tableName = getTableLikeName(table);
+
+    if (typeof tableName === 'string' && this.config.joins?.some((join: any) => join.alias === tableName)) {
+      throw new Error(`Alias "${tableName}" is already used in this query`);
+    }
+
+    if (!this.isPartialSelect) {
+      if (Object.keys(this.joinsNotNullableMap).length === 1 && typeof baseTableName === 'string') {
+        this.config.fields = {
+          [baseTableName]: this.config.fields,
+        };
+      }
+      if (typeof tableName === 'string' && !is(table, SQL)) {
+        const selection = is(table, Subquery)
+          ? table._.selectedFields
+          : is(table, View)
+            ? (table as any)[ViewBaseConfig].selectedFields
+            : table[(Table as any).Symbol.Columns];
+        this.config.fields[tableName] = selection;
+      }
+    }
+
+    if (!this.config.joins) {
+      this.config.joins = [];
+    }
+    this.config.joins.push({ on: undefined, table, joinType: 'cross', alias: tableName });
+
+    if (typeof tableName === 'string') {
+      this.joinsNotNullableMap[tableName] = true;
+    }
+    return this;
+  };
+
   private createSetOperator(type: string, isAll: boolean) {
     return (rightSelection: any) => {
       const rightSelect = typeof rightSelection === 'function'
