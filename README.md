@@ -1,23 +1,24 @@
 # drizzle-databend
 
-A [Drizzle ORM](https://orm.drizzle.team/) driver for [Databend](https://databend.com/). Built on Drizzle's Postgres driver surface (`pg-core`) since Databend supports `$1` positional parameters and double-quote identifier quoting.
+> This driver was created to power [drizzle-cube](https://try.drizzle-cube.dev) (an embeddable semantic layer built on Drizzle) and [drizby](https://github.com/cliftonc/drizby) (an open source BI platform built on drizzle-cube). It enables both projects to query Databend natively via Drizzle ORM.
+
+A [Drizzle ORM](https://orm.drizzle.team/) driver for [Databend](https://databend.com/). Built on a standalone `databend-core` dialect module with `$1` positional parameters and double-quote identifier quoting.
 
 Uses [`databend-driver`](https://github.com/databendlabs/bendsql/tree/main/bindings/nodejs) (NAPI-RS bindings) as the underlying client.
 
 ## Install
 
 ```sh
-bun add drizzle-databend drizzle-orm databend-driver
+npm install drizzle-databend drizzle-orm databend-driver
 ```
 
 ## Quick start
 
 ```ts
-import { drizzle } from 'drizzle-databend';
-import { pgTable, integer, varchar, text } from 'drizzle-orm/pg-core';
+import { drizzle, databendTable, integer, varchar, text } from 'drizzle-databend';
 import { eq } from 'drizzle-orm';
 
-const users = pgTable('users', {
+const users = databendTable('users', {
   id: integer('id').notNull(),
   name: varchar('name', { length: 256 }).notNull(),
   email: text('email'),
@@ -35,9 +36,18 @@ const rows = await db.select().from(users).where(eq(users.name, 'Alice'));
 ## Databend-specific column types
 
 ```ts
-import { databendVariant, databendArray, databendTuple, databendMap, databendTimestamp, databendDate } from 'drizzle-databend';
+import {
+  databendTable,
+  databendVariant,
+  databendArray,
+  databendTuple,
+  databendMap,
+  databendTimestamp,
+  databendDate,
+  integer,
+} from 'drizzle-databend';
 
-const events = pgTable('events', {
+const events = databendTable('events', {
   id: integer('id').notNull(),
   payload: databendVariant('payload'),         // VARIANT (semi-structured JSON)
   tags: databendArray('tags', 'VARCHAR'),       // ARRAY(VARCHAR)
@@ -117,32 +127,28 @@ bendsql -udatabend -pdatabend
 ### Commands
 
 ```sh
-bun install           # Install dependencies
-bun run build         # Build (dist/index.mjs + type declarations)
-bun test              # Run integration tests (requires running Databend)
+npm install           # Install dependencies
+npm run build         # Build (dist/index.mjs + type declarations)
+npm run typecheck     # Type-check with tsc
+npm run lint          # Lint with biome
+npm test              # Run all tests (requires running Databend)
 ```
-
-### Seed data
-
-Populate two sample tables (`users` and `events`) for manual testing:
-
-```sh
-bun run scripts/seed.ts
-```
-
-This creates 5 users and 10 events with VARIANT payloads and timestamps.
 
 ## Architecture
 
-Built on the same pattern as [drizzle-duckdb](https://github.com/leonardovida/drizzle-duckdb):
-
-- **`driver.ts`** -- `drizzle()` factory and `DatabendDatabase` extending `PgDatabase`
-- **`session.ts`** -- `DatabendSession` and `DatabendPreparedQuery` for query execution
-- **`dialect.ts`** -- `DatabendDialect` extending `PgDialect` with Databend-specific migrations and type mapping
-- **`client.ts`** -- Low-level execution wrapping `databend-driver`'s `Connection` API
-- **`pool.ts`** -- Connection pooling via `Client.getConn()`
-- **`columns.ts`** -- Custom column types (VARIANT, ARRAY, TUPLE, MAP, TIMESTAMP, DATE)
-- **`sql/result-mapper.ts`** -- Maps Databend results to Drizzle's expected format
+- **`src/databend-core/`** -- Standalone dialect module (ported from drizzle-orm's gel-core)
+  - `dialect.ts` -- SQL generation with `$1` params and `"` identifier quoting
+  - `session.ts` -- Abstract session, prepared query, and transaction base classes
+  - `db.ts` -- `DatabendDatabase` with select/insert/update/delete/execute/CTE support
+  - `table.ts` -- `databendTable()` table definition function
+  - `columns/` -- Column type builders (integer, varchar, boolean, timestamp, etc.)
+  - `query-builders/` -- SELECT, INSERT, UPDATE, DELETE query builders
+- **`src/driver.ts`** -- `drizzle()` factory, connection management, pool creation
+- **`src/session.ts`** -- Concrete session with databend-driver query execution
+- **`src/client.ts`** -- Low-level execution wrapping `databend-driver`'s `Connection` API
+- **`src/pool.ts`** -- Connection pooling via `Client.getConn()`
+- **`src/columns.ts`** -- Custom column types (VARIANT, ARRAY, TUPLE, MAP, TIMESTAMP, DATE)
+- **`src/sql/result-mapper.ts`** -- Maps Databend results to Drizzle's expected format
 
 ## License
 
