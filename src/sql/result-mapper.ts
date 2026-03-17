@@ -6,6 +6,7 @@ import {
   is,
   type SelectedFieldsOrdered,
   SQL,
+  Subquery,
 } from 'drizzle-orm';
 import { DatabendCustomColumn } from '../databend-core/columns/custom.ts';
 import { DatabendDate } from '../databend-core/columns/date.ts';
@@ -14,6 +15,14 @@ import { DatabendTimestamp } from '../databend-core/columns/timestamp.ts';
 type SQLInternal<T = unknown> = SQL<T> & {
   decoder: DriverValueDecoder<T, any>;
 };
+
+/** Extract SQL from Aliased (has .sql) or Subquery (has _.sql) */
+function getFieldSql(field: unknown): SQL {
+  const f = field as any;
+  if (f.sql instanceof SQL) return f.sql;
+  if (f._?.sql instanceof SQL) return f._.sql;
+  throw new Error('Cannot extract SQL from field');
+}
 
 type DecoderInput<TDecoder extends DriverValueDecoder<unknown, unknown>> =
   Parameters<TDecoder['mapFromDriverValue']>[0];
@@ -113,12 +122,13 @@ export function mapResultRow<TResult>(
       } else if (is(field, SQL)) {
         decoder = (field as SQLInternal).decoder;
       } else {
-        const col = field.sql.queryChunks.find((chunk) => is(chunk, Column));
+        const fieldSql = getFieldSql(field);
+        const col = fieldSql.queryChunks.find((chunk) => is(chunk, Column));
 
         if (is(col, DatabendCustomColumn)) {
           decoder = col;
         } else {
-          decoder = (field.sql as SQLInternal).decoder;
+          decoder = (fieldSql as SQLInternal).decoder;
         }
       }
       let node = acc;
