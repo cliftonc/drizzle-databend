@@ -1,23 +1,22 @@
+import type { Connection } from 'databend-driver';
 import { entityKind } from 'drizzle-orm/entity';
+import { TransactionRollbackError } from 'drizzle-orm/errors';
 import type { Logger } from 'drizzle-orm/logger';
 import { NoopLogger } from 'drizzle-orm/logger';
 import { PgTransaction } from 'drizzle-orm/pg-core';
 import type { SelectedFieldsOrdered } from 'drizzle-orm/pg-core/query-builders/select.types';
 import type {
+  PgQueryResultHKT,
   PgTransactionConfig,
   PreparedQueryConfig,
-  PgQueryResultHKT,
 } from 'drizzle-orm/pg-core/session';
 import { PgPreparedQuery, PgSession } from 'drizzle-orm/pg-core/session';
 import type {
   RelationalSchemaConfig,
   TablesRelationalConfig,
 } from 'drizzle-orm/relations';
-import { fillPlaceholders, type Query, type QueryTypingsValue, SQL, sql } from 'drizzle-orm/sql/sql';
+import { fillPlaceholders, type Query, type QueryTypingsValue, type SQL, sql } from 'drizzle-orm/sql/sql';
 import type { Assume } from 'drizzle-orm/utils';
-import { mapResultRow } from './sql/result-mapper.ts';
-import { TransactionRollbackError } from 'drizzle-orm/errors';
-import type { DatabendDialect } from './dialect.ts';
 import type {
   DatabendClientLike,
   DatabendConnectionPool,
@@ -28,7 +27,8 @@ import {
   executeOnClient,
   isPool,
 } from './client.ts';
-import type { Connection } from 'databend-driver';
+import type { DatabendDialect } from './dialect.ts';
+import { mapResultRow } from './sql/result-mapper.ts';
 
 export type { DatabendClientLike, RowData } from './client.ts';
 

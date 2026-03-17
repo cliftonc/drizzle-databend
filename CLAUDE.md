@@ -8,11 +8,13 @@ This is `drizzle-databend`, a Databend dialect adapter for drizzle-orm. It build
 
 ## Commands
 
-- **Install dependencies:** `bun install`
-- **Run all tests:** `bun test`
-- **Run a single test file:** `bun test test/<filename>.test.ts`
-- **Build:** `bun run build` (emits `dist/index.mjs` and type declarations)
-- **Build declarations only:** `bun run build:declarations`
+- **Install dependencies:** `npm install`
+- **Run all tests:** `npm test`
+- **Run a single test file:** `npx vitest run test/<filename>.test.ts`
+- **Build:** `npm run build` (emits `dist/index.mjs` and type declarations)
+- **Build declarations only:** `npm run build:declarations`
+- **Start Databend:** `npm run db:start`
+- **Stop Databend:** `npm run db:stop`
 
 ## Architecture
 

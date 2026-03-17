@@ -1,4 +1,4 @@
-import { Column, SQL, getTableName, is, sql } from 'drizzle-orm';
+import { Column, getTableName, is, SQL, sql } from 'drizzle-orm';
 import type { SelectedFields } from 'drizzle-orm/pg-core';
 
 function mapEntries(

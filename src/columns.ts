@@ -1,5 +1,5 @@
+
 import { customType } from 'drizzle-orm/pg-core';
-import type { SQL } from 'drizzle-orm';
 
 /**
  * Databend VARIANT column type.

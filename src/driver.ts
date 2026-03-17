@@ -1,3 +1,4 @@
+import type { Connection } from 'databend-driver';
 import { Client } from 'databend-driver';
 import { entityKind } from 'drizzle-orm/entity';
 import type { Logger } from 'drizzle-orm/logger';
@@ -5,25 +6,24 @@ import { DefaultLogger } from 'drizzle-orm/logger';
 import { PgDatabase } from 'drizzle-orm/pg-core/db';
 import {
   createTableRelationsHelpers,
-  extractTablesRelationalConfig,
   type ExtractTablesWithRelations,
+  extractTablesRelationalConfig,
   type RelationalSchemaConfig,
   type TablesRelationalConfig,
 } from 'drizzle-orm/relations';
-import { type DrizzleConfig } from 'drizzle-orm/utils';
+import type { DrizzleConfig } from 'drizzle-orm/utils';
+import { closeClientConnection, isPool } from './client.ts';
+import { DatabendDialect } from './dialect.ts';
+import {
+  createDatabendConnectionPool,
+  type DatabendPoolConfig,
+} from './pool.ts';
 import type {
   DatabendClientLike,
   DatabendQueryResultHKT,
   DatabendTransaction,
 } from './session.ts';
 import { DatabendSession } from './session.ts';
-import { DatabendDialect } from './dialect.ts';
-import { isPool, closeClientConnection } from './client.ts';
-import {
-  createDatabendConnectionPool,
-  type DatabendPoolConfig,
-} from './pool.ts';
-import type { Connection } from 'databend-driver';
 
 export interface DatabendDriverOptions {
   logger?: Logger;

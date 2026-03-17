@@ -215,7 +215,9 @@ export function createDatabendConnectionPool(
       toClose.map((item) => closeClientConnection(item.connection))
     );
     total = Math.max(0, total - toClose.length);
-    toClose.forEach((item) => metadata.delete(item.connection));
+    for (const item of toClose) {
+      metadata.delete(item.connection);
+    }
 
     const maxWait = 5000;
     const start = Date.now();

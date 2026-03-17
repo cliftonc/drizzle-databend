@@ -1,11 +1,11 @@
 import {
+  type AnyColumn,
   Column,
-  SQL,
+  type DriverValueDecoder,
   getTableName,
   is,
-  type AnyColumn,
-  type DriverValueDecoder,
   type SelectedFieldsOrdered,
+  SQL,
 } from 'drizzle-orm';
 import {
   PgCustomColumn,
@@ -214,7 +214,6 @@ export function mapResultRow<TResult>(
           if (nullifyMap[objectName] && nullifyMap[objectName] !== tableName) {
             nullifyMap[objectName] = false;
           }
-          continue;
         }
       }
       return acc;

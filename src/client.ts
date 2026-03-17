@@ -59,7 +59,7 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
     catch (error) {
       lastError = error;
       if (!isTransientError(error) || attempt === maxRetries) throw error;
-      await new Promise(r => setTimeout(r, 100 * Math.pow(2, attempt)));
+      await new Promise(r => setTimeout(r, 100 * 2 ** attempt));
     }
   }
   throw lastError;

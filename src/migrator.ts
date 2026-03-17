@@ -1,7 +1,7 @@
 import type { MigrationConfig } from 'drizzle-orm/migrator';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
-import type { DatabendDatabase } from './driver.ts';
 import type { PgSession } from 'drizzle-orm/pg-core/session';
+import type { DatabendDatabase } from './driver.ts';
 
 export type DatabendMigrationConfig = MigrationConfig | string;
 

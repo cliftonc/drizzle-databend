@@ -1,3 +1,8 @@
+import {
+  type DriverValueEncoder,
+  type QueryTypingsValue,
+  sql,
+} from 'drizzle-orm';
 import { entityKind, is } from 'drizzle-orm/entity';
 import type { MigrationConfig, MigrationMeta } from 'drizzle-orm/migrator';
 import {
@@ -10,18 +15,13 @@ import {
   PgInteger,
   PgNumeric,
   PgReal,
-  PgSession,
+  type PgSession,
   PgSmallInt,
   PgTime,
   PgTimestamp,
   PgTimestampString,
   PgUUID,
 } from 'drizzle-orm/pg-core';
-import {
-  sql,
-  type DriverValueEncoder,
-  type QueryTypingsValue,
-} from 'drizzle-orm';
 
 export class DatabendDialect extends PgDialect {
   static readonly [entityKind]: string = 'DatabendPgDialect';
