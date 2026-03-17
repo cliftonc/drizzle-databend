@@ -9,7 +9,10 @@
   "scripts": {
     "build": "bun build --target=node ./src/index.ts --outfile=./dist/index.mjs --packages=external && bun run build:declarations",
     "build:declarations": "tsc --emitDeclarationOnly --project tsconfig.types.json",
-    "test": "vitest"
+    "test": "vitest",
+    "db:start": "docker start databend 2>/dev/null || docker run -d --name databend -p 8000:8000 datafuselabs/databend",
+    "db:stop": "docker stop databend",
+    "db:restart": "docker restart databend"
   },
   "peerDependencies": {
     "databend-driver": ">=0.33.0",

@@ -13,7 +13,7 @@ import type {
   RelationalSchemaConfig,
   TablesRelationalConfig,
 } from 'drizzle-orm/relations';
-import { fillPlaceholders, type Query, SQL, sql } from 'drizzle-orm/sql/sql';
+import { fillPlaceholders, type Query, type QueryTypingsValue, SQL, sql } from 'drizzle-orm/sql/sql';
 import type { Assume } from 'drizzle-orm/utils';
 import { mapResultRow } from './sql/result-mapper.ts';
 import { TransactionRollbackError } from 'drizzle-orm/errors';
@@ -26,7 +26,6 @@ import type {
 import {
   executeArraysOnClient,
   executeOnClient,
-  prepareParams,
   isPool,
 } from './client.ts';
 import type { Connection } from 'databend-driver';
@@ -47,7 +46,8 @@ export class DatabendPreparedQuery<
     private _isResponseInArrayMode: boolean,
     private customResultMapper:
       | ((rows: unknown[][]) => T['execute'])
-      | undefined
+      | undefined,
+    private typings?: QueryTypingsValue[]
   ) {
     super({ sql: queryString, params });
   }
@@ -55,19 +55,18 @@ export class DatabendPreparedQuery<
   async execute(
     placeholderValues: Record<string, unknown> | undefined = {}
   ): Promise<T['execute']> {
-    const params = prepareParams(
-      fillPlaceholders(this.params, placeholderValues)
-    );
+    const params = fillPlaceholders(this.params, placeholderValues);
     this.logger.logQuery(this.queryString, params);
 
-    const { fields, joinsNotNullableMap, customResultMapper } =
+    const { fields, joinsNotNullableMap, customResultMapper, typings } =
       this as typeof this & { joinsNotNullableMap?: Record<string, boolean> };
 
     if (fields) {
       const { rows } = await executeArraysOnClient(
         this.client,
         this.queryString,
-        params
+        params,
+        typings
       );
 
       if (rows.length === 0) {
@@ -81,7 +80,7 @@ export class DatabendPreparedQuery<
           );
     }
 
-    const rows = await executeOnClient(this.client, this.queryString, params);
+    const rows = await executeOnClient(this.client, this.queryString, params, typings);
 
     return rows as T['execute'];
   }
@@ -137,7 +136,8 @@ export class DatabendSession<
       this.logger,
       fields,
       isResponseInArrayMode,
-      customResultMapper
+      customResultMapper,
+      (query as any).typings
     );
   }
 

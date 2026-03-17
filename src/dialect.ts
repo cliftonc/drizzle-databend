@@ -1,11 +1,17 @@
 import { entityKind, is } from 'drizzle-orm/entity';
 import type { MigrationConfig, MigrationMeta } from 'drizzle-orm/migrator';
 import {
+  PgBigInt53,
+  PgBigInt64,
   PgDate,
   PgDateString,
   PgDialect,
+  PgDoublePrecision,
+  PgInteger,
   PgNumeric,
+  PgReal,
   PgSession,
+  PgSmallInt,
   PgTime,
   PgTimestamp,
   PgTimestampString,
@@ -92,7 +98,11 @@ export class DatabendDialect extends PgDialect {
   override prepareTyping(
     encoder: DriverValueEncoder<unknown, unknown>
   ): QueryTypingsValue {
-    if (is(encoder, PgNumeric)) {
+    if (
+      is(encoder, PgNumeric) || is(encoder, PgInteger) || is(encoder, PgSmallInt)
+      || is(encoder, PgReal) || is(encoder, PgDoublePrecision)
+      || is(encoder, PgBigInt53) || is(encoder, PgBigInt64)
+    ) {
       return 'decimal';
     } else if (is(encoder, PgTime)) {
       return 'time';
