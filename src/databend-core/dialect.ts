@@ -97,8 +97,12 @@ export class DatabendDialect {
     return `"${name}"`;
   }
 
-  escapeParam(num: number): string {
-    return `$${num + 1}`;
+  escapeParam(_num: number): string {
+    // Emit `?` rather than `$N`. Databend reads `$N` as a column-position reference
+    // (stage column refs), which forces the driver onto its client-side interpolation
+    // fallback. `?` parses as a placeholder and is bound server-side, positionally, in
+    // encounter order - which matches how Drizzle appends one param per placeholder.
+    return '?';
   }
 
   escapeString(str: string): string {

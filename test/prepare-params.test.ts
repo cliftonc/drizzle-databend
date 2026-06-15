@@ -2,18 +2,21 @@ import { describe, expect, it } from 'vitest';
 import { prepareParams } from '../src/client.ts';
 
 describe('prepareParams', () => {
-  describe('string escaping', () => {
-    it('should escape single quotes in strings', () => {
-      expect(prepareParams(["O'Brien"])).toEqual(["O''Brien"]);
+  describe('string passthrough (no client-side escaping)', () => {
+    // As of databend-driver 0.34.0 the driver owns escaping (server-side binding, or its
+    // own client-side escaping against older servers). prepareParams must NOT pre-escape,
+    // otherwise values are double-escaped.
+    it('should pass single quotes through unchanged', () => {
+      expect(prepareParams(["O'Brien"])).toEqual(["O'Brien"]);
     });
 
-    it('should escape multiple single quotes', () => {
-      expect(prepareParams(["it's a 'test'"])).toEqual(["it''s a ''test''"]);
+    it('should pass multiple single quotes through unchanged', () => {
+      expect(prepareParams(["it's a 'test'"])).toEqual(["it's a 'test'"]);
     });
 
-    it('should escape SQL injection attempts', () => {
+    it('should pass SQL injection attempts through verbatim (driver binds them safely)', () => {
       const result = prepareParams(["'; DROP TABLE users; --"]);
-      expect(result).toEqual(["''; DROP TABLE users; --"]);
+      expect(result).toEqual(["'; DROP TABLE users; --"]);
     });
 
     it('should pass strings without quotes unchanged', () => {
@@ -32,8 +35,7 @@ describe('prepareParams', () => {
       expect(result[0]).toBe('2024-01-15T10:00:00.000Z');
     });
 
-    it('should escape quotes in date ISO strings (defensive)', () => {
-      // Dates don't normally contain quotes, but the escaping is applied
+    it('should produce a plain ISO string for the driver to bind', () => {
       const result = prepareParams([new Date('2024-01-15T10:00:00Z')]);
       expect(typeof result[0]).toBe('string');
     });
@@ -60,16 +62,14 @@ describe('prepareParams', () => {
       expect(result[0]).toBe('[1,2,3]');
     });
 
-    it('should escape quotes in JSON-stringified objects', () => {
+    it('should JSON-stringify objects with quotes without extra escaping', () => {
       const result = prepareParams([{ note: "it's a test" }]);
-      const expected = '{"note":"it' + "''" + 's a test"}';
-      expect(result[0]).toBe(expected);
+      expect(result[0]).toBe('{"note":"it\'s a test"}');
     });
 
     it('should handle nested objects with quotes', () => {
       const result = prepareParams([{ tags: ["won't break"], name: "O'Brien" }]);
-      expect(typeof result[0]).toBe('string');
-      expect((result[0] as string).includes("''")).toBe(true);
+      expect(result[0]).toBe('{"tags":["won\'t break"],"name":"O\'Brien"}');
     });
   });
 
@@ -124,14 +124,14 @@ describe('prepareParams', () => {
       expect(result[0]).toBe(' 5 ');
     });
 
-    it('should still escape quotes when typing is not decimal', () => {
+    it('should pass quoted strings through unchanged when typing is not decimal', () => {
       const result = prepareParams(["O'Brien"], ['none']);
-      expect(result[0]).toBe("O''Brien");
+      expect(result[0]).toBe("O'Brien");
     });
 
     it('should handle mixed typings', () => {
       const result = prepareParams(['5', "O'Brien", '3.14'], ['decimal', 'none', 'decimal']);
-      expect(result).toEqual([5, "O''Brien", 3.14]);
+      expect(result).toEqual([5, "O'Brien", 3.14]);
     });
 
     it('should handle missing typings gracefully', () => {

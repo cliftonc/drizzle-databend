@@ -2,9 +2,18 @@
 
 > This driver was created to power [drizzle-cube](https://try.drizzle-cube.dev) (an embeddable semantic layer built on Drizzle) and [drizby](https://github.com/cliftonc/drizby) (an open source BI platform built on drizzle-cube). It enables both projects to query Databend natively via Drizzle ORM.
 
-A [Drizzle ORM](https://orm.drizzle.team/) driver for [Databend](https://databend.com/). Built on a standalone `databend-core` dialect module with `$1` positional parameters and double-quote identifier quoting.
+A [Drizzle ORM](https://orm.drizzle.team/) driver for [Databend](https://databend.com/). Built on a standalone `databend-core` dialect module with `?` positional parameters and double-quote identifier quoting.
 
 Uses [`databend-driver`](https://github.com/databendlabs/bendsql/tree/main/bindings/nodejs) (NAPI-RS bindings) as the underlying client.
+
+### Parameter binding
+
+Queries are sent with `?` placeholders and a separate parameter array. On Databend
+server `> 1.2.900` with `databend-driver >= 0.34.0`, parameters are bound **server-side**
+via the `/v1/query` `params` field, so values are never interpolated into the SQL text.
+Against older servers the driver transparently falls back to client-side interpolation
+using its own SQL-standard escaping. Either way the driver owns escaping; this adapter no
+longer pre-escapes values. `databend-driver >= 0.34.0` is required.
 
 ## Install
 
@@ -137,7 +146,7 @@ npm test              # Run all tests (requires running Databend)
 ## Architecture
 
 - **`src/databend-core/`** -- Standalone dialect module (ported from drizzle-orm's gel-core)
-  - `dialect.ts` -- SQL generation with `$1` params and `"` identifier quoting
+  - `dialect.ts` -- SQL generation with `?` params and `"` identifier quoting
   - `session.ts` -- Abstract session, prepared query, and transaction base classes
   - `db.ts` -- `DatabendDatabase` with select/insert/update/delete/execute/CTE support
   - `table.ts` -- `databendTable()` table definition function
