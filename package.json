@@ -17,7 +17,7 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "databend-driver": ">=0.33.0",
+    "databend-driver": ">=0.34.0",
     "drizzle-orm": ">=0.40.0"
   },
   "peerDependenciesMeta": {
@@ -28,7 +28,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.7",
     "@types/node": "^25.5.0",
-    "databend-driver": "^0.33.6",
+    "databend-driver": "^0.34.0",
     "drizzle-orm": "0.45.0",
     "esbuild": "^0.25.0",
     "typescript": "^5.8.2",

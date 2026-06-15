@@ -1,6 +1,10 @@
 services:
   databend:
-    image: datafuselabs/databend
+    # Server-side parameter binding requires Databend server > 1.2.900. The current
+    # stable `latest` tag is 1.2.881, which makes the driver fall back to client-side
+    # interpolation. Pin a nightly above the threshold so the test suite exercises the
+    # real server-side binding path. Replace with a stable tag once one ships > 1.2.900.
+    image: datafuselabs/databend:v1.2.919-nightly
     container_name: drizzle-databend-test
     ports:
       - "8124:8000"

@@ -19,27 +19,40 @@ export function isPool(
 }
 
 /**
- * Convert Drizzle param array to a JSON value accepted by databend-driver's Params.
- * Databend's Params is serde_json::Value, so we pass an array of JSON-serializable values.
+ * Convert a Drizzle param array into the JSON values databend-driver binds to `?`
+ * placeholders. Databend's Params is a serde_json::Value, so we pass an array of
+ * JSON-serializable values.
  *
- * The databend-driver does client-side parameter substitution with no string escaping,
- * so we must pre-escape single quotes here (SQL standard '' escaping).
+ * As of databend-driver 0.34.0 the driver binds parameters server-side (or, against
+ * older servers, interpolates them with its own SQL-standard '' escaping). Either way
+ * the driver owns escaping, so we must NOT pre-escape here - doing so would corrupt
+ * values via double-escaping. Our only job is to coerce JS types the JSON params array
+ * cannot carry verbatim (bigint, Date, structured values) into a form the server binds
+ * to the target column.
  */
 export function prepareParams(params: unknown[], typings?: QueryTypingsValue[]): unknown[] {
   return params.map((param, i) => {
     if (param === undefined) return null;
-    if (param instanceof Date) return param.toISOString().replace(/'/g, "''");
+    if (param === null) return null;
+    // JSON has no Date type: send an ISO string for the server to bind to TIMESTAMP.
+    if (param instanceof Date) return param.toISOString();
+    // JSON cannot carry a bigint: send it as a string for the server to parse.
     if (typeof param === 'bigint') return param.toString();
     if (typeof param === 'string') {
+      // Drizzle hands decimal/numeric values over as strings. Coerce them to a JS number
+      // so the server binds a numeric value rather than a string for numeric columns.
       const typing = typings?.[i];
       if (typing === 'decimal' && /^-?\d+(\.\d+)?([eE][+-]?\d+)?$/.test(param)) {
         return Number(param);
       }
-      return param.replace(/'/g, "''");
+      return param;
     }
-    if (typeof param === 'object' && param !== null) {
-      return JSON.stringify(param).replace(/'/g, "''");
+    // VARIANT / ARRAY / MAP / TUPLE: serialize structured values to a JSON string, which
+    // the server parses into the semi-structured column type.
+    if (typeof param === 'object') {
+      return JSON.stringify(param);
     }
+    // number / boolean pass through unchanged.
     return param;
   });
 }
